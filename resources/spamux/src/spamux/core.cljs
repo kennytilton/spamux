@@ -35,15 +35,16 @@
     [spamux.job-control
      :refer [builder-panel cleaner-panel]]
 
-    [spamux.job :refer [make-xhr-job]]))
+    [spamux.job :refer [make-xhr-job]]
+
+    [spamux.util :refer [hbox]]))
 
 
 (enable-console-print!)
 
 (tufte/add-basic-println-handler! {})
 
-(def hbox {:display "flex"
-           :flex-direction "row"})
+
 
 (defn matrix-build! []
   (md/make ::spamux

@@ -69,7 +69,7 @@
     (go
       (case (:job-type params)
         "clean" (email-file-to-sendfiles-mp job-id)
-        "build" (email-raw-file-build job-id (Integer/parseInt (:volumek params))))
+        "build" (email-raw-file-build job-id (Integer/parseInt (:k-count params))))
 
       (swap! gJobs update-in [job-id :full-stats]
         #(merge-with + % (latest-summary-stats job-id)))

@@ -35,6 +35,13 @@
   (pln :eko!!! key value)
   value)
 
+;;; --- view  -----------------------------------------
+
+(def hbox {:display "flex"
+           :flex-direction "row"})
+
+;;; --- xhr bound ---------------------------------------
+
 (defn xhr?-response
   "Tolerates nil XHR assuming will arrive later in data flow"
   [xhr]

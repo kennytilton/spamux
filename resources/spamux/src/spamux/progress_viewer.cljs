@@ -46,6 +46,15 @@
     (p {:content (cF (<mget (mx-par me) :value))
         :style   "font-size:1em"})))
 
+(declare rejected-score-display)
+(def standard-stat-style
+  {:min-width     "72px"
+   :margin        "2px"
+   :padding-right "2px"
+   :text-align    "right"
+   :font-weight   "bold"
+   :background    "white"})
+
 (defn stats-displayer []
   (div {:style "opacity:0;margin-left:36px"
         :class (cF (when (and
@@ -55,6 +64,12 @@
                              (<mget job :job-id)))
                      "fazer"))}
     {:name  "stat-group"
+
+     ;; the stats derived state might reasonably go right on the job object,
+     ;; but so far it is not needed unless the user wants to watch the
+     ;; running stats, so why do all the heavy lifting? Let us see if
+     ;; we end up needing stats for automatic job control, such as aborting
+     ;; jobs if the failure rate gets too high.
      :stats (cF (let [displayer me]
                   (when-let [poller (xhr-poller :poll-running
                                       (fn []
@@ -71,43 +86,51 @@
     [(b "Running Stats")
      (p)
      (when-let [job-id (mtx-job-id me)]
-       (for [[lbl vkey fmtr] (cons
-                               ["Duration" :run-duration
-                                (fn [val]
-                                  (pp/cl-format nil "~,3f" (/ val 1000.0)))]
-                               (case (mtx-job-type me)
-                               :clean
-                               [
-                                ["Sent" :sent-ct]
-                                ["Dup Email" :rejected-dup-addr]
-                                ["High score" :rejected-score]
-                                ["High mean" :rejected-overall-mean]
-                                ["Span mean" :rejected-span-mean]]
+       (for [[lbl stat-key fmtr] (cons
+                                   ["Duration" :run-duration
+                                    (fn [val]
+                                      (pp/cl-format nil "~,3f" (/ val 1000.0)))]
+                                   (case (mtx-job-type me)
+                                     :clean
+                                     [
+                                      ["Sent" :sent-ct]
+                                      ["Dup Email" :rejected-dup-addr]
+                                      ["High score" :rejected-score]
+                                      ["High mean" :rejected-overall-mean]
+                                      ["Span mean" :rejected-span-mean]]
 
-                               :build
-                               [["Built" :built-ct]]))]
+                                     :build
+                                     [["Built" :built-ct]]))]
          (div {:style {:display        "flex",
                        :flex-direction "row"}} {}
            (span {:style   {:min-width "96px"
                             :margin    "2px"}
                   :content (str lbl ": ")})
-           (span {:style   {:min-width     "72px"
-                            :margin        "2px"
-                            :padding-right "2px"
-                            :text-align    "right"
-                            :font-weight   "bold"
-                            :background    "white"}
-                  :content (let [f (or fmtr str)]
-                             (cF (when-let [ss (mxu-find-name me "stat-group")]
-                                   (when-let [stats (<mget ss :stats)]
-                                     (f (vkey stats))))))}))))]))
+           (case stat-key
+             :rejected-score (rejected-score-display)
+
+             (span {:style   standard-stat-style
+                    :content (let [f (or fmtr str)]
+                               (cF (when-let [ss (fmo me "stat-group")]
+                                     (when-let [stats (<mget ss :stats)]
+                                       (f (stat-key stats))))))})))))]))
+
+(defn rejected-score-display []
+  ;; We want operators to stop batches if the reject rate is too high.
+  ;;
+  ;; Your Mission (extra credit): Change the formula to display a reject *ratio* of
+  ;; high score rejections to emails sent, and change the packground to pink if it exceeds
+  ;; something like 40%.
+  ;;
+  (span {:style standard-stat-style
+         :content (cF (str (:rejected-score (<mget (fmo me "stat-group") :stats))))}))
 
 (def spam-format "~{<p :style 'background:#FCC;min-width:250px;max-width:250px'>~a</p>~}")
 
 (defn fails-displayer []
   (div {:style "opacity:0;margin-left:36px"
         :class (cF (when (and
-                           (<mget (md/mxu-find-name me "sample-fails") :on?)
+                           (<mget (fmo me "sample-fails") :on?)
                            (mtx-job-id me)
                            (= :clean (mtx-job-type me)))
                      "fazer"))}
